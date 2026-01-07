@@ -1,0 +1,63 @@
+##11 August 2020
+## Try Pagel test for phylo signal
+#ttp://blog.phytools.org/2019/11/major-updates-to-phylosig-function.html
+
+rm(list=ls())
+library(phytools)
+
+#tree <- read.tree("2.catstrict.tree") #1384 tips
+
+tree <- read.tree("Rham.10t.GENUS.only.tree") #1430 BUT with non-angio outgroups
+
+Ntip(tree)
+#NO outgroups means 1423 tips
+
+
+## PLot tree to see if everything is good
+plotTree(tree,fsize=0.8,ftype="i",
+         lwd=1)
+
+Ntip(tree)
+#215 pomaderreae
+
+
+#############PGLS
+
+#Read your trait csv file here
+traits<-read.csv("WA.Rham.Priority.PGLS.genus.csv",
+             row.names=1)
+#the first number, 4 or 5 specifies the sp.PGLS, then the rest are the ones we want to keep
+data.frame(traits[, c(1, 1:3)])-> dd
+rownames(dd)<- traits[,1] #update here 5 oct (sp.PGLS was 4 but now it's 5)
+dd
+
+
+#Match traits and tree
+x<-name.check(tree, dd)
+x$tree_not_data
+str(x$data_not_tree)
+dd<-dd[!rownames(dd) %in% x$data_not_tree, ]
+
+#end up with 1423 obs (original was 1463)
+
+tree$node.label<-NULL
+
+#packageVersion('caper')
+#Load packages
+library(caper)
+library(geiger)
+library(ape)
+
+#modified from PGLS_example_Rscript.FN.1010.R
+
+#Merge data in compar format, names.col should include the column name with the species names in trait dataframe
+compar <- comparative.data(phy = tree, data = dd, names.col= "genus", vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE,  vcv.dim=3)
+
+compar
+
+model.pgls<-pgls(log(rare.WA.sp)~log(tot.sp) , data = compar,  delta = "ML")
+summary(model.pgls)
+
+
+mode.pgls<-pgls(tot.sp ~ rare.WA.sp, data = compar)
+summary(model.pgls)
